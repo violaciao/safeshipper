@@ -44,14 +44,14 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 │  │      Prevalence Estimators          │                            │
 │  │                                     │                            │
 │  │  1. Direct proportion  (baseline)   │                            │
-│  │     π̂ = k/n, Wilson CI             │                             │
+│  │     π̂ = k/n, Wilson CI              │                            │
 │  │                                     │                            │
 │  │  2. Classifier-adjusted             │                            │
-│  │     π̂ = (q̂ - FPR) / (TPR - FPR)   │                              │
+│  │     π̂ = (q̂ - FPR) / (TPR - FPR)     │                            │
 │  │     CI via delta method             │                            │
 │  │                                     │                            │
 │  │  3. Capture-recapture (Chapman)     │                            │
-│  │     N̂ = (n₁+1)(n₂+1)/(m+1) - 1    │                              │
+│  │     N̂ = (n₁+1)(n₂+1)/(m+1) - 1      │                            │
 │  │     No labels required              │                            │
 │  └──────────────┬──────────────────────┘                            │
 │                 │  Prevalence estimate + 95% CI                     │
