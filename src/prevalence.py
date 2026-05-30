@@ -276,8 +276,10 @@ class PrevalenceEstimator:
         """
         Chapman capture-recapture estimator with log-transformed confidence interval.
 
-        Estimates the total harmful item count using two independent detection
-        systems as "capture occasions." Does not require ground-truth labels.
+        Estimates the total harmful item count using two independent, high-precision
+        capture lists as "capture occasions." Does not require ground-truth labels,
+        but raw detector outputs with nonzero false-positive rates can be severely
+        biased because the capture lists no longer represent only harmful items.
 
         .. math::
 
@@ -308,10 +310,13 @@ class PrevalenceEstimator:
 
         Notes
         -----
-        **Independence assumption:** The Chapman estimator assumes the two
-        detection systems are independent. In practice, two LLM-based systems
-        using the same base model will be positively correlated, causing
-        underestimation of N. This limitation should be acknowledged in reporting.
+        **Capture-list assumptions:** The Chapman estimator assumes the two
+        capture lists are high precision samples from the target population and
+        statistically independent. Raw detector outputs with nonzero FPR can
+        overestimate N at low base rates because false positives dominate the
+        capture lists. In practice, two similar LLM-based systems may also be
+        positively correlated, causing underestimation of N. These limitations
+        should be acknowledged in reporting.
 
         Log-transformed CI (standard in ecology / epidemiology):
 

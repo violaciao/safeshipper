@@ -52,7 +52,7 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 │  │                                     │                            │
 │  │  3. Capture-recapture (Chapman)     │                            │
 │  │     N̂ = (n₁+1)(n₂+1)/(m+1) - 1      │                            │
-│  │     No labels required              │                            │
+│  │     Requires high-precision lists    │                            │
 │  └──────────────┬──────────────────────┘                            │
 │                 │  Prevalence estimate + 95% CI                     │
 │                 ▼                                                   │
@@ -77,15 +77,15 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 
 ### Prevalence Estimates by Harm Vertical (Simulated — BeaverTails Schema)
 
-| Harm Vertical | True Prevalence | Naive Estimate | Adjusted Estimate | 95% CI | Capture-Recapture |
-|---------------|----------------|----------------|-------------------|--------|-------------------|
-| sexual_content_minors | 0.40% | 1.22% | 0.41% | [0.31%, 0.53%] | 0.44% |
-| violent_extremism | 1.10% | 2.78% | 1.09% | [0.89%, 1.31%] | 1.15% |
-| self_harm_suicide | 2.10% | 3.88% | 2.12% | [1.82%, 2.44%] | 2.08% |
-| influence_operations | 1.90% | 3.62% | 1.91% | [1.63%, 2.21%] | 1.97% |
-| platform_abuse | 6.50% | 9.47% | 6.48% | [5.97%, 7.01%] | 6.55% |
+| Harm Vertical | True Prevalence | Naive Flag Rate | Classifier-Adjusted | 95% CI | Raw Capture-Recapture |
+|---------------|----------------|-----------------|---------------------|--------|-----------------------|
+| sexual_content_minors | 0.40% | 6.77% | 1.01% | [0.00%, 3.82%] | 39.9% |
+| violent_extremism | 1.10% | 7.33% | 1.75% | [0.00%, 4.57%] | 34.6% |
+| self_harm_suicide | 2.10% | 8.10% | 2.76% | [0.00%, 5.59%] | 27.0% |
+| influence_operations | 1.90% | 8.03% | 2.68% | [0.00%, 5.50%] | 27.4% |
+| platform_abuse | 6.50% | 11.07% | 6.67% | [3.80%, 9.54%] | 23.0% |
 
-*Naive estimate = raw detection system flag rate. At 0.4% true prevalence with TPR=82%, FPR=6%, the naive estimate overestimates by 3×.*
+*Naive flag rate = raw detection system output. At 0.4% true prevalence with TPR=82% and FPR=6%, the naive flag rate overestimates by ~17×. Raw Chapman capture-recapture is even more biased here because the two capture lists include false positives; it is only appropriate when capture lists are high precision or false-positive corrected.*
 
 ### Estimator Comparison (500-Trial Monte Carlo Validation)
 
@@ -93,7 +93,7 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 |-----------|-------------------|------|------|--------------|
 | Direct proportion | 95.2% | 0.0003 | ~0 | Gold standard labels |
 | Classifier-adjusted | 94.6% | 0.0008 | ~0 | Gold standard TPR/FPR |
-| Capture-recapture | 93.1% | 0.0021 | Small | Two independent systems |
+| Raw capture-recapture | Poor under nonzero FPR | Large upward bias | High | High-precision or false-positive-corrected capture lists |
 
 ### Calibration Impact on Prevalence CI
 
@@ -272,8 +272,8 @@ BeaverTails was constructed using human red-teamers and may not reflect the natu
 ### Classifier Hallucination
 LLM-based classifiers (including GPT and Claude) can hallucinate policy violations for edge-case content, and can miss policy violations that use novel evasion techniques. TPR/FPR estimates from a static validation set will degrade as bad actors adapt. Re-evaluation on a fresh gold standard set quarterly (or after model updates) is essential.
 
-### Capture-Recapture Independence Assumption
-The Chapman estimator assumes the two detection systems are statistically independent — that knowing an item was caught by System A gives no information about whether System B would catch it. In practice, two LLM-based systems using the same base model are positively correlated (both tend to miss or catch similar items), which causes **underestimation of N**. For production use, ensure the two systems use meaningfully different feature sets (e.g., one rule-based, one LLM-based) to minimize correlation.
+### Capture-Recapture Assumptions
+The Chapman estimator assumes the two capture lists are high precision samples from the true target population and are statistically independent — that knowing an item was caught by System A gives no information about whether System B would catch it. Raw detector outputs violate this when FPR is nonzero: at low base rates, false positives dominate the capture lists and can cause severe **overestimation** of prevalence. Positive dependence between similar systems can also bias the estimate downward. For production use, apply capture-recapture only to high-precision or reviewed capture lists, or use methods that explicitly model false positives and dependence.
 
 ### Off-Platform Harm
 This methodology measures on-platform content signals only. Harms that are coordinated off-platform (e.g., a Telegram channel directing platform behavior) will not be captured in the prevalence estimate. Off-platform signal integration is outlined in the stretch goals.
