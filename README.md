@@ -180,11 +180,11 @@ Notebooks are designed to run with or without an API key:
 ```python
 from src.classifier import HarmClassifier
 
-# Anthropic (default)
+# Anthropic
 clf = HarmClassifier(provider="anthropic")
 result = clf.classify("Some platform content", "violent_extremism")
 
-# OpenAI — identical interface
+# OpenAI 
 clf = HarmClassifier(provider="openai", model="gpt-4o-mini")  # cheaper option
 result = clf.classify("Some platform content", "violent_extremism")
 
@@ -258,7 +258,7 @@ See `data/README.md` for load instructions and schema details.
 BeaverTails was constructed using human red-teamers and may not reflect the natural distribution of harmful content on any specific platform. Prevalence rates from this dataset should be treated as illustrative, not ground truth for any deployed system.
 
 ### Classifier Hallucination
-LLM-based classifiers (including Claude) can hallucinate policy violations for edge-case content, and can miss policy violations that use novel evasion techniques. TPR/FPR estimates from a static validation set will degrade as bad actors adapt. Re-evaluation on a fresh gold standard set quarterly (or after model updates) is essential.
+LLM-based classifiers (including GPT and Claude) can hallucinate policy violations for edge-case content, and can miss policy violations that use novel evasion techniques. TPR/FPR estimates from a static validation set will degrade as bad actors adapt. Re-evaluation on a fresh gold standard set quarterly (or after model updates) is essential.
 
 ### Capture-Recapture Independence Assumption
 The Chapman estimator assumes the two detection systems are statistically independent — that knowing an item was caught by System A gives no information about whether System B would catch it. In practice, two LLM-based systems using the same base model are positively correlated (both tend to miss or catch similar items), which causes **underestimation of N**. For production use, ensure the two systems use meaningfully different feature sets (e.g., one rule-based, one LLM-based) to minimize correlation.
