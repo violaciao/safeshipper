@@ -28,8 +28,8 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 │  └──────┬──────┘                                                    │
 │         │  Labeled sample (~2K–10K items)                           │
 │         ▼                                                           │
-│  ┌─────────────┐    Claude or GPT API (zero-shot or few-shot)       │
-│  │    LLM      │    provider="anthropic"|"openai"                   │
+│  ┌─────────────┐    Claude, GPT, or Groq API (zero/few-shot)        │
+│  │    LLM      │    provider="anthropic"|"openai"|"groq"            │
 │  │  Classifier │    Output: {violates_policy, confidence,           │
 │  │             │            key_signals, reasoning}                 │
 │  └──────┬──────┘                                                    │
@@ -154,6 +154,7 @@ cp .env.example .env
 # Add at least one provider key:
 # ANTHROPIC_API_KEY=sk-ant-...   (for Claude)
 # OPENAI_API_KEY=sk-...          (for GPT)
+# GROQ_API_KEY=gsk_...           (for Groq free-tier testing)
 ```
 
 ### 3. Run tests
@@ -173,6 +174,7 @@ jupyter notebook notebooks/
 Notebooks are designed to run with or without an API key:
 - **With Anthropic key:** Notebooks 01 and 03 run Claude on BeaverTails data.
 - **With OpenAI key:** Set `PROVIDER = 'openai'` in notebook 01 to use GPT instead.
+- **With Groq key:** Set `PROVIDER = 'groq'` in notebook 01 to use Groq's OpenAI-compatible API.
 - **Without any key:** All notebooks fall back to `src/simulation.py` synthetic data and produce equivalent visualizations.
 
 ### 5. Switching LLM providers
@@ -186,6 +188,10 @@ result = clf.classify("Some platform content", "violent_extremism")
 
 # OpenAI 
 clf = HarmClassifier(provider="openai", model="gpt-4o-mini")  # cheaper option
+result = clf.classify("Some platform content", "violent_extremism")
+
+# Groq
+clf = HarmClassifier(provider="groq", model="llama-3.1-8b-instant")  # free-tier friendly
 result = clf.classify("Some platform content", "violent_extremism")
 
 print(result.label, result.confidence, result.provider)
@@ -278,7 +284,7 @@ For harm verticals with true prevalence below 0.1%, a sample of 2,000–5,000 it
 - **Python `logging`** throughout (no bare `print` statements in `src/`)
 - **Pydantic-style dataclasses** for all configuration — no magic numbers in notebooks
 - **Reproducibility:** All random operations accept explicit seeds; dataset versions documented
-- **Retry logic:** All LLM API calls (both providers) use exponential backoff with configurable `max_retries`
+- **Retry logic:** All LLM API calls use exponential backoff with configurable `max_retries`
 
 ---
 
@@ -299,7 +305,7 @@ Neither dataset is bundled in this repository. They are downloaded at runtime vi
 ```
 Python 3.11+
 anthropic>=0.25.0      # Claude API (Anthropic provider)
-openai>=1.25.0         # GPT API (OpenAI provider)
+openai>=1.25.0         # OpenAI SDK; also used for Groq's OpenAI-compatible API
 datasets>=2.19.0       # HuggingFace datasets
 pandas>=2.2.0
 numpy>=1.26.0

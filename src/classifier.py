@@ -1,14 +1,15 @@
 """
-LLM-based harm detection system supporting both Anthropic (Claude) and OpenAI (GPT) backends.
+LLM-based harm detection system supporting Anthropic, OpenAI, and Groq backends.
 
-Wraps either provider as a zero-shot and few-shot harm classifier across five integrity
+Wraps each provider as a zero-shot and few-shot harm classifier across five integrity
 verticals. Outputs structured JSON with policy violation judgment, confidence score, and
 key signals. Includes rate limiting, exponential backoff retry logic, token usage tracking,
-and cost estimation for both providers.
+and cost estimation for all providers.
 
 Provider selection
 ------------------
-Set ``provider="anthropic"`` (default) to use Claude, or ``provider="openai"`` to use GPT.
+Set ``provider="anthropic"`` (default) to use Claude, ``provider="openai"`` to use GPT,
+or ``provider="groq"`` to use Groq's OpenAI-compatible API.
 The ``model`` parameter is optional — if omitted, the provider's recommended default is used.
 """
 
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -33,12 +35,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODELS: dict[str, str] = {
     "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
+    "groq": "llama-3.1-8b-instant",
 }
 
 # USD per million tokens
 _COSTS: dict[str, dict[str, float]] = {
     "anthropic": {"input": 3.00, "output": 15.00},   # claude-sonnet-4
     "openai":    {"input": 2.50, "output": 10.00},    # gpt-4o
+    "groq":      {"input": 0.05, "output": 0.08},     # llama-3.1-8b-instant list price
+}
+
+OPENAI_COMPATIBLE_BASE_URLS: dict[str, str] = {
+    "groq": "https://api.groq.com/openai/v1",
 }
 
 # ---------------------------------------------------------------------------
@@ -192,7 +200,7 @@ class ClassificationResult:
     mode : str
         ``"zero_shot"`` or ``"few_shot"``.
     provider : str
-        ``"anthropic"`` or ``"openai"``.
+        ``"anthropic"``, ``"openai"``, or ``"groq"``.
     model : str
         Exact model ID used for this call.
     input_tokens : int
@@ -230,22 +238,21 @@ class ClassificationResult:
 
 class HarmClassifier:
     """
-    LLM-based harm detection system with Anthropic (Claude) and OpenAI (GPT) backends.
+    LLM-based harm detection system with Anthropic, OpenAI, and Groq backends.
 
     Supports zero-shot and few-shot classification across five integrity verticals.
     Switch providers via the ``provider`` parameter; all other behaviour is identical.
 
     Parameters
     ----------
-    provider : {"anthropic", "openai"}
+    provider : {"anthropic", "openai", "groq"}
         LLM backend to use. Default: ``"anthropic"``.
     api_key : str, optional
         API key for the selected provider. Falls back to ``ANTHROPIC_API_KEY`` or
-        ``OPENAI_API_KEY`` environment variables respectively.
+        ``OPENAI_API_KEY`` or ``GROQ_API_KEY`` environment variables respectively.
     model : str, optional
-        Model ID. Defaults to ``claude-sonnet-4-6`` for Anthropic and ``gpt-4o``
-        for OpenAI. Override with any compatible model (e.g., ``"gpt-4o-mini"``
-        for lower cost, ``"claude-opus-4-6"`` for higher quality).
+        Model ID. Defaults to ``claude-sonnet-4-6`` for Anthropic, ``gpt-4o``
+        for OpenAI, and ``llama-3.1-8b-instant`` for Groq.
     max_retries : int
         Maximum retry attempts on rate limit or transient API errors.
     requests_per_minute : int
@@ -260,11 +267,15 @@ class HarmClassifier:
     >>> # OpenAI
     >>> clf = HarmClassifier(provider="openai", model="gpt-4o-mini")
     >>> result = clf.classify("Some text", "platform_abuse", mode="few_shot")
+
+    >>> # Groq
+    >>> clf = HarmClassifier(provider="groq")
+    >>> result = clf.classify("Some text", "violent_extremism")
     """
 
     def __init__(
         self,
-        provider: Literal["anthropic", "openai"] = "anthropic",
+        provider: Literal["anthropic", "openai", "groq"] = "anthropic",
         api_key: str | None = None,
         model: str | None = None,
         max_retries: int = 3,
@@ -272,7 +283,7 @@ class HarmClassifier:
     ) -> None:
         if provider not in DEFAULT_MODELS:
             raise ValueError(
-                f"Unknown provider: {provider!r}. Choose 'anthropic' or 'openai'."
+                f"Unknown provider: {provider!r}. Choose 'anthropic', 'openai', or 'groq'."
             )
 
         self.provider = provider
@@ -424,10 +435,15 @@ class HarmClassifier:
         """Instantiate the appropriate SDK client."""
         if provider == "anthropic":
             import anthropic  # type: ignore[import]
-            return anthropic.Anthropic(api_key=api_key)
-        else:  # openai
-            import openai  # type: ignore[import]
-            return openai.OpenAI(api_key=api_key)
+            return anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
+
+        import openai  # type: ignore[import]
+        if provider == "groq":
+            return openai.OpenAI(
+                api_key=api_key or os.getenv("GROQ_API_KEY"),
+                base_url=OPENAI_COMPATIBLE_BASE_URLS["groq"],
+            )
+        return openai.OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
 
     # ------------------------------------------------------------------
     # Prompt construction
@@ -493,8 +509,8 @@ Important guidelines:
                     return self._call_openai(system_prompt, user_message)
 
             except Exception as exc:
-                # Both anthropic and openai expose RateLimitError; catch broadly
-                # and inspect for known transient error types.
+                # Provider SDKs expose related transient errors under different names,
+                # so inspect the exception type for known transient failures.
                 exc_type = type(exc).__name__
                 is_rate_limit = "RateLimitError" in exc_type
                 is_api_error = "APIError" in exc_type or "APIStatusError" in exc_type

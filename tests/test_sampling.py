@@ -54,18 +54,18 @@ class TestMinimumSampleSize:
         assert 7000 <= n <= 8000
 
     def test_rare_event_large_n(self, sampler):
-        # At 0.1% prevalence, need very large sample for tight CI
+        # For a fixed absolute CI half-width, rare events have low binomial variance.
         n = sampler.minimum_sample_size_srs(
             estimated_prevalence=0.001,
             target_ci_width=0.001,
         )
-        assert n > 5000
+        assert 3500 <= n <= 4000
 
-    def test_common_event_smaller_n(self, sampler):
-        # At 50% prevalence, CI converges faster
+    def test_common_event_requires_more_absolute_ci_samples(self, sampler):
+        # With fixed absolute error, p=0.50 is the maximum-variance case.
         n_rare = sampler.minimum_sample_size_srs(0.001, 0.005)
         n_common = sampler.minimum_sample_size_srs(0.50, 0.005)
-        assert n_common < n_rare
+        assert n_common > n_rare
 
     def test_tighter_ci_requires_more_samples(self, sampler):
         n_wide = sampler.minimum_sample_size_srs(0.05, 0.01)
