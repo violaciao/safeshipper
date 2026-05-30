@@ -8,7 +8,7 @@
 
 SafeShipper addresses a fundamental measurement problem in AI trust & safety: **raw detection system output is not prevalence**. When a classifier flags 2% of content as harmful, the true prevalence could be anywhere from 0.1% to 15% depending on classifier TPR, FPR, and base rate. Getting this wrong by even a factor of 2× leads to misallocated enforcement resources, inaccurate policy impact measurement, and misleading leadership metrics.
 
-This project implements a full measurement pipeline — from LLM-based harm detection (compatible for both GPT and Claude APIs) through stratified sampling design, capture-recapture estimation, and classifier calibration — with the statistical rigor required to produce actionable prevalence estimates with valid confidence intervals. The methodology maps directly to what integrity measurement teams at large AI platforms need to answer: *"What fraction of content on our platform actually violates policy right now, and how precisely do we know that?"*
+This project implements a full measurement pipeline — from LLM-based harm detection (compatible with Claude, GPT, and Groq APIs) through actor-level behavioral feature engineering, risk-stratified sampling, capture-recapture estimation, classifier calibration, off-platform signal integration, and A/B test power analysis — with the statistical rigor required to produce actionable prevalence estimates with valid confidence intervals. The methodology maps directly to what integrity measurement teams at large AI platforms need to answer: *"What fraction of content on our platform actually violates policy right now, and how precisely do we know that?"*
 
 ---
 
@@ -117,26 +117,37 @@ safeshipper/
 │   └── README.md             # Dataset provenance and license notes
 │
 ├── notebooks/
-│   ├── 00_data_exploration.ipynb    # EDA on BeaverTails + prevalence rates
-│   ├── 01_llm_classifier.ipynb      # Harm detection system evaluation (Anthropic + OpenAI)
-│   ├── 02_sampling_design.ipynb     # Stratified sampling strategy comparison
-│   ├── 03_prevalence_estimation.ipynb  # All three estimators vs ground truth
-│   ├── 04_calibration_analysis.ipynb   # Calibration + CI error propagation
-│   └── 05_dashboard_mockup.ipynb    # Operational integrity metrics dashboard
+│   ├── 00_data_exploration.ipynb        # EDA on BeaverTails + prevalence rates
+│   ├── 01_llm_classifier.ipynb          # Harm detection (Anthropic / OpenAI / Groq)
+│   ├── 02_sampling_design.ipynb         # Stratified sampling strategy comparison
+│   ├── 03_prevalence_estimation.ipynb   # All three estimators vs ground truth
+│   ├── 04_calibration_analysis.ipynb    # Calibration + CI error propagation
+│   ├── 05_dashboard_mockup.ipynb        # Operational integrity metrics dashboard
+│   ├── 06_actor_network_features.ipynb  # Actor risk scoring + coordination detection
+│   ├── 07_ab_test_design.ipynb          # Power analysis for prevalence-based A/B tests
+│   └── 08_off_platform_signals.ipynb    # Bayesian update with off-platform evidence
 │
 ├── src/
 │   ├── __init__.py
-│   ├── classifier.py    # HarmClassifier — Anthropic (Claude) + OpenAI (GPT) backends
+│   ├── classifier.py    # HarmClassifier — Anthropic (Claude) + OpenAI (GPT) + Groq
 │   ├── sampling.py      # StratifiedHarmSampler — Neyman + risk-stratified
 │   ├── prevalence.py    # PrevalenceEstimator — direct, adjusted, Chapman
 │   ├── calibration.py   # ClassifierCalibrator — Platt, isotonic, ECE
 │   ├── metrics.py       # Threshold-level classification metrics
-│   └── simulation.py    # Synthetic corpus generator + coverage validation
+│   ├── simulation.py    # Synthetic corpus generator + coverage validation
+│   └── actor.py         # ActorFeatureExtractor + coordination network detection
+│
+├── sql/
+│   ├── README.md                        # Schema documentation and query context
+│   ├── 01_sampling_frame.sql            # Stratified sampling frame (BigQuery/Snowflake)
+│   ├── 02_weekly_prevalence_rollup.sql  # Weekly HT + classifier-adjusted prevalence
+│   └── 03_enforcement_gap_analysis.sql  # Detection vs enforcement gap by vertical
 │
 └── tests/
     ├── test_prevalence.py
     ├── test_sampling.py
-    └── test_calibration.py
+    ├── test_calibration.py
+    └── test_actor.py
 ```
 
 ---
