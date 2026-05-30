@@ -67,6 +67,12 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 
 ---
 
+## Operational Dashboard Preview
+
+![Operational integrity metrics dashboard](data/processed/05_integrity_dashboard.png)
+
+---
+
 ## Key Findings
 
 ### Prevalence Estimates by Harm Vertical (Simulated — BeaverTails Schema)
