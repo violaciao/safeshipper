@@ -52,7 +52,7 @@ This project implements a full measurement pipeline — from LLM-based harm dete
 │  │                                     │                            │
 │  │  3. Capture-recapture (Chapman)     │                            │
 │  │     N̂ = (n₁+1)(n₂+1)/(m+1) - 1      │                            │
-│  │     Requires high-precision lists    │                            │
+│  │     Requires high-precision lists   │                            │
 │  └──────────────┬──────────────────────┘                            │
 │                 │  Prevalence estimate + 95% CI                     │
 │                 ▼                                                   │
@@ -125,7 +125,8 @@ safeshipper/
 │   ├── 05_dashboard_mockup.ipynb        # Operational integrity metrics dashboard
 │   ├── 06_actor_network_features.ipynb  # Actor risk scoring + coordination detection
 │   ├── 07_ab_test_design.ipynb          # Power analysis for prevalence-based A/B tests
-│   └── 08_off_platform_signals.ipynb    # Bayesian update with off-platform evidence
+│   ├── 08_off_platform_signals.ipynb    # Bayesian update with off-platform evidence
+│   └── 09_metrics_funnel.ipynb          # Full metrics reference + 7-stage funnel analysis
 │
 ├── src/
 │   ├── __init__.py
@@ -203,7 +204,7 @@ from src.classifier import HarmClassifier
 clf = HarmClassifier(provider="anthropic")
 result = clf.classify("Some platform content", "violent_extremism")
 
-# OpenAI 
+# OpenAI
 clf = HarmClassifier(provider="openai", model="gpt-4o-mini")  # cheaper option
 result = clf.classify("Some platform content", "violent_extremism")
 
